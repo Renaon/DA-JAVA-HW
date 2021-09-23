@@ -1,5 +1,7 @@
 package hw8;
 
+import java.util.HashSet;
+
 public class HashTableImpl<K, V> implements HashTable<K, V> {
 
     static class Item<K, V> implements Entry<K, V> {
@@ -43,14 +45,15 @@ public class HashTableImpl<K, V> implements HashTable<K, V> {
         }
     }
 
-    private final Item<K, V>[] data;
+    private final HashSet<Item<K, V>>[] data;
+//    private final LinkedList<Item<K,V>> chain;
 
     private final Item<K, V> emptyItem;
 
     private int size;
 
     public HashTableImpl(int initialCapacity) {
-        this.data = new Item[initialCapacity * 2];
+        this.data =  new HashSet[initialCapacity * 2];
         emptyItem = new Item<>(null, null);
     }
 
@@ -60,25 +63,16 @@ public class HashTableImpl<K, V> implements HashTable<K, V> {
 
     @Override
     public boolean put(K key, V value) {
-        if (size() == data.length) {
-            return false;
-        }
+        if (size() == data.length) return false;
 
         int index = hashFunc(key);
 
-        while (data[index] != null) {
-            if (isKeysEquals(data[index], key)) {
-                data[index].setValue(value);
-            }
-            index+= getStep(key);
-            index %= data.length;
+        if(data[index] == null) {
+            data[index] = new HashSet<>();
         }
-
-        data[index] = new Item<>(key, value);
+        data[index].add(new Item<>(key, value));
         size++;
-
         return true;
-
     }
 
     protected int getStep(K key) {
@@ -97,11 +91,13 @@ public class HashTableImpl<K, V> implements HashTable<K, V> {
 
         int count = 0;
         while (count < data.length) {
-            Item<K, V> item = data[index];
+            HashSet<Item<K, V>> item = data[index];
             if (item == null) {
                 break;
-            } else if (isKeysEquals(item, key)) {
-                return index;
+            } else{
+                for(Item<K,V> i : item){
+                    if(isKeysEquals(i, key)) return index;
+                }
             }
 
             count++;
@@ -115,20 +111,36 @@ public class HashTableImpl<K, V> implements HashTable<K, V> {
     @Override
     public V get(K key) {
         int index = indexOf(key);
-        return index == -1 ? null : data[index].getValue();
+        try {
+            if (data[index] == null) return null;
+            else {
+                HashSet<Item<K, V>> item = data[index];
+                for (Item<K, V> i : item) {
+                    if (i.getKey() == key) return i.getValue();
+                }
+            }
+        }catch(ArrayIndexOutOfBoundsException e){
+            return null;
+        }
+        return null;
     }
 
     @Override
     public V remove(K key) {
-        int index = indexOf(key);
+        int index = hashFunc(key);
+        if (index == -1) return null;
 
-        if (index == -1) {
-            return null;
+        HashSet<Item<K,V>> item = data[index];
+        Item<K,V> tmp = search(key, item);
+        data[index].remove(tmp);
+        return tmp == null ? null : tmp.getValue();
+    }
+
+    private Item<K,V> search(K key, HashSet<Item<K,V>> item){
+        for(Item<K,V> i: item){
+            if(i.getKey().equals(key)) return i;
         }
-
-        Item<K, V> tempItem = data[index];
-        data[index] = emptyItem;
-        return tempItem.getValue();
+        return null;
     }
 
     @Override

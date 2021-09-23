@@ -1,5 +1,6 @@
 package hw8;
 
+
 public class DoubleHashTable<K, V> extends HashTableImpl<K, V> {
 
     public DoubleHashTable(int initialCapacity) {
